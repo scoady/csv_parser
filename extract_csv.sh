@@ -1,4 +1,6 @@
     #!/bin/bash
+
+    main() {
     clear
     files=($(ls *.csv)) 
     num_files=$(ls *.csv | wc -l)
@@ -14,12 +16,19 @@
     topPressLow=999999;
     bottomPressHigh=0;
     bottomPressLow=999999;
+    outFile='./out.csv'
     echo "name,date,maxTopTemp,maxTopPress,maxBottomTemp,maxBottomPress,averageTemp,averagePress"
+
+    }
+
 numCompare() {
   # awk -v n1="$1" -v n2="$2" 'BEGIN {printf "%s " (n1<n2?"<":">=") " %s\n", n1, n2}'
   if awk -v n1="$1" -v n2="$2" 'BEGIN { exit (n1 <= n2) }' /dev/null; then echo 1; else echo 0; fi
 }
-    for filename in "${files[@]}"
+
+
+function processFiles() {
+  for filename in "${files[@]}"
     do
         declare -a INDICIES=("top-temp" "bottom-temp" "top-press" "bottom-press" "date")
         for index in "${INDICIES[@]}"
@@ -100,40 +109,37 @@ numCompare() {
         elif [ "$index" == "date" ]; then  
             thisDate=$(tail +2 $filename | cut -d "," -f$a)
         fi
+        done
+        averageTemp=$(echo "scale=3;($topTemp+$bottomTemp)/2" | bc)
+        averagePress=$(echo "scale=3;($topPress+$bottomPress)/2" | bc)
+        echo "$filename,$thisDate,$topTemp,$topPress,$bottomTemp,$bottomPress,$averageTemp,$averagePress"   
+
     done
-    averageTemp=$(echo "scale=3;($topTemp+$bottomTemp)/2" | bc)
-    averagePress=$(echo "scale=3;($topPress+$bottomPress)/2" | bc)
-
-echo "$filename,$thisDate,$topTemp,$topPress,$bottomTemp,$bottomPress,$averageTemp,$averagePress"
+    
+}
 
 
 
-#    echo "Top Temp: " $topTemp
- #   echo "Bottom Temp: "$bottomTemp
-  #  echo "Top Press:  "$topPress
-   # echo "Bottom Press: " $bottomPress
-
-    #echo "-----------------------------"
-
+printResults() {
+    echo 
+    echo "Top Temp High | Top Temp Low | Bottom Temp High | Bottom Temp Low " 
+    echo "----------------------------------------------------------------------------"
+    echo "$topTempHigh , $topTempLow , $bottomPressHigh, $bottomPressLow"
 
 
+    echo 
+    echo
+    topTempAvg=$(echo "scale=3; ($runningTopTempTotal / $num_files)" | bc)     
+    bottomTempAvg=$(echo "scale=3; ($runningBottomTempTotal / $num_files)" | bc)     
+    topPressAvg=$(echo "scale=3; ($runningTopPressTotal / $num_files)" | bc)  
+    bottomPressAvg=$(echo "scale=3; ($runningBottomPressTotal / $num_files)" | bc)        
 
-    #echo "Average temp: "$averageTemp
-   # echo "Average press: "$averagePress
-    done
-
-echo "Top Temp High | Top Temp Low | Bottom Temp High | Bottom Temp Low "
-echo "----------------------------------------------------------------------------"
-echo "$topTempHigh , $topTempLow , $bottomPressHigh, $bottomPressLow"
+    echo "Top Temp Avg | Bottom Temp Avg | Top Press Avg | Bottom Press Avg"
+    echo "----------------------------------------------------------------------------"
+    echo "$topTempAvg, $bottomTempAvg, $topPressAvg, $bottomPressAvg "
+}
 
 
-echo 
-echo
-topTempAvg=$(echo "scale=3; ($runningTopTempTotal / $num_files)" | bc)     
-bottomTempAvg=$(echo "scale=3; ($runningBottomTempTotal / $num_files)" | bc)     
-topPressAvg=$(echo "scale=3; ($runningTopPressTotal / $num_files)" | bc)  
-bottomPressAvg=$(echo "scale=3; ($runningBottomPressTotal / $num_files)" | bc)        
-
-echo "Top Temp Avg | Bottom Temp Avg | Top Press Avg | Bottom Press Avg"
-echo "----------------------------------------------------------------------------"
-echo "$topTempAvg, $bottomTempAvg, $topPressAvg, $bottomPressAvg "
+main
+processFiles
+printResults
